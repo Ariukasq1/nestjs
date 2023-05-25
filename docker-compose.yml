@@ -17,7 +17,7 @@ services:
     container_name: nodejs
     build: .
     tty: true
-    command: npm run start
+    command: npm run start:dev
     ports:
       - '3000:3000'
     volumes:
@@ -26,4 +26,3 @@ services:
       - mysql
     env_file:
       - ./prisma/.env
-

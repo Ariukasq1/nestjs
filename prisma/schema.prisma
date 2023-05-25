@@ -1,8 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
   binaryTargets = ["native", "darwin-arm64", "linux-musl", "linux-arm64-openssl-1.1.x"]
 }
 
@@ -11,7 +8,43 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Book {
-  id Int @default(autoincrement()) @id
-  title String
+model Redeemable {
+  id                Int               @id @default(autoincrement())
+  code              Int?
+  type              String?
+  claimBeginAt      DateTime?
+  claimEndAt        DateTime?
+  createdAt         DateTime          @default(now())
+  redeemableGroup   RedeemableGroup?  @relation(fields: [redeemableGroupId], references: [id])
+  redeemableGroupId Int?
+  isReclaimable     Boolean           @default(false)
+  redeemableClaim   RedeemableClaim[]
+}
+
+model RedeemableGroup {
+  id         Int          @id @default(autoincrement())
+  name       String
+  redeemable Redeemable[]
+}
+
+model RedeemableClaim {
+  id           Int        @id @default(autoincrement())
+  redeemadble  Redeemable @relation(fields: [redeeambleId], references: [id])
+  redeeambleId Int
+  userId       Int
+}
+
+model EventHandler {
+  id          Int           @id @default(autoincrement())
+  triggerType String
+  triggerId   Int
+  eventResult EventResult[]
+}
+
+model EventResult {
+  id             Int          @id @default(autoincrement())
+  resultType     String
+  resultId       Int
+  eventHandler   EventHandler @relation(fields: [eventHandlerId], references: [id])
+  eventHandlerId Int
 }
