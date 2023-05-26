@@ -1,22 +1,14 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete } from '@nestjs/common';
 import { RedeemablesService } from './redeemables.service';
-import { UpdateRedeemableDto } from './dto/update-redeemable.dto';
+import { CreateRedeemableDto } from './dto/create-redeemable.dto';
 
 @Controller('redeemables')
 export class RedeemablesController {
   constructor(private readonly redeemablesService: RedeemablesService) {}
 
   @Post()
-  create(@Body() body) {
-    return this.redeemablesService.create(body);
+  create(@Body() body: CreateRedeemableDto) {
+    return this.redeemablesService.createRedeemable(body);
   }
 
   @Get()
@@ -29,13 +21,13 @@ export class RedeemablesController {
     return this.redeemablesService.findOne({ id: +id });
   }
 
-  @Patch(':id')
-  update(
-    @Param('id') id: string,
-    @Body() updateRedeemableDto: UpdateRedeemableDto,
-  ) {
-    return this.redeemablesService.update({ id: +id }, updateRedeemableDto);
-  }
+  // @Patch(':id')
+  // update(
+  //   @Param('id') id: string,
+  //   @Body() updateRedeemableDto: UpdateRedeemableDto,
+  // ) {
+  //   return this.redeemablesService.update({ id: +id }, updateRedeemableDto);
+  // }
 
   @Delete(':id')
   remove(@Param('id') id: string) {

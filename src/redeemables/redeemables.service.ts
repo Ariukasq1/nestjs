@@ -6,28 +6,17 @@ import { Prisma } from '@prisma/client';
 export class RedeemablesService {
   constructor(private prisma: PrismaService) {}
 
-  async create(body) {
-    if (body.isReclaimable === true) {
-      const claimData = await this.prisma.redeemableClaim.findMany({
-        where: { userId: body.code },
-      });
+  async createRedeemable(body) {
+    const redeemableGroup = await this.prisma.redeemableGroup.findFirst({
+      where: { id: body.redeemableGroupId },
+    });
 
-      if (claimData.length != 0) {
-        return this.prisma.redeemable.create({
-          data: body,
-        });
-      }
-    }
-    switch (body.type) {
-      case 'promo':
-        console.log('body type', body.type);
-        break;
-      case 'voucher':
-        console.log('body type', body.type);
-        break;
-      case 'coupon':
-        console.log('body type', body.type);
-        break;
+    if (!redeemableGroup) {
+      return; //must show 400 error
+    } else {
+      return this.prisma.redeemable.create({
+        data: body,
+      });
     }
   }
 
