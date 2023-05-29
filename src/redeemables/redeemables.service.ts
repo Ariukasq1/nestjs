@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { Prisma } from '@prisma/client';
 
@@ -12,7 +12,7 @@ export class RedeemablesService {
     });
 
     if (!redeemableGroup) {
-      return; //must show 400 error
+      return new HttpException('Forbidden', HttpStatus.FORBIDDEN);
     } else {
       return this.prisma.redeemable.create({
         data: body,

@@ -21,9 +21,6 @@ export class CreateRedeemableDto {
   @IsDateString()
   claimEndAt: Date;
 
-  @IsDateString()
-  createdAt: Date;
-
   @IsOptional()
   @IsInt()
   redeemableGroupId: number;

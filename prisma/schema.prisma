@@ -11,13 +11,13 @@ datasource db {
 model Redeemable {
   id                Int      @id @default(autoincrement())
   code              String
-  name              String
   type              String
   claimBeginAt      DateTime
   claimEndAt        DateTime
-  createdAt         DateTime
+  createdAt         DateTime @default(now())
   redeemableGroupId Int?
   isReclaimable     Boolean  @default(false)
+  name              String
 }
 
 model RedeemableGroup {
@@ -26,21 +26,445 @@ model RedeemableGroup {
 }
 
 model RedeemableClaim {
-  id   Int    @id @default(autoincrement())
-  code String
+  id         Int    @id @default(autoincrement())
+  code       String
+  claimCount Int?
 }
 
 model EventHandler {
-  id          Int           @id @default(autoincrement())
+  id          Int    @id @default(autoincrement())
   triggerType String
   triggerId   Int
-  eventResult EventResult[]
 }
 
 model EventResult {
-  id             Int          @id @default(autoincrement())
+  id             Int    @id @default(autoincrement())
   resultType     String
   resultId       Int
-  eventHandler   EventHandler @relation(fields: [eventHandlerId], references: [id])
   eventHandlerId Int
+
+  @@index([eventHandlerId], map: "EventResult_eventHandlerId_fkey")
+}
+
+model auth_providers {
+  id          Int    @id @default(autoincrement()) @db.UnsignedInt
+  user_uid    Int    @db.UnsignedInt
+  provider_id String @db.VarChar(255)
+  users       users  @relation(fields: [user_uid], references: [uid], onDelete: Cascade, onUpdate: NoAction, map: "auth_providers_user_uid_foreign")
+
+  @@index([user_uid], map: "auth_providers_user_uid_foreign")
+}
+
+model cards {
+  id                 Int              @id @default(autoincrement()) @db.UnsignedInt
+  user_uid           Int              @db.UnsignedInt
+  service_id         String           @db.VarChar(255)
+  holder_name        String           @db.VarChar(255)
+  first_digits       String           @db.VarChar(255)
+  last_digits        String           @db.VarChar(255)
+  bank_name          String           @db.VarChar(255)
+  bank_number        String           @db.VarChar(255)
+  payment_gateway_id Int              @db.UnsignedInt
+  created_at         DateTime         @db.DateTime(0)
+  payment_gateways   payment_gateways @relation(fields: [payment_gateway_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "cards_payment_gateway_id_foreign")
+  users              users            @relation(fields: [user_uid], references: [uid], onDelete: Cascade, onUpdate: NoAction, map: "cards_user_uid_foreign")
+
+  @@index([payment_gateway_id], map: "cards_payment_gateway_id_foreign")
+  @@index([user_uid], map: "cards_user_uid_foreign")
+}
+
+model config {
+  id    Int    @id @default(autoincrement()) @db.UnsignedInt
+  key   String @db.VarChar(255)
+  value String @db.VarChar(255)
+}
+
+model contributions {
+  id          Int      @id @default(autoincrement()) @db.UnsignedInt
+  episode_uid Int      @db.UnsignedInt
+  member_id   Int      @db.UnsignedInt
+  type        String   @default("participate") @db.VarChar(255)
+  episodes    episodes @relation(fields: [episode_uid], references: [uid], onDelete: Cascade, onUpdate: NoAction, map: "contributions_episode_uid_foreign")
+  members     members  @relation(fields: [member_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "contributions_member_id_foreign")
+
+  @@index([episode_uid], map: "contributions_episode_uid_foreign")
+  @@index([member_id], map: "contributions_member_id_foreign")
+}
+
+model deal_shares {
+  uid             Int           @id @db.UnsignedInt
+  deal_uid        Int?          @db.UnsignedInt
+  distributor_uid Int?          @db.UnsignedInt
+  amount          Int
+  created_at      DateTime?     @db.Timestamp(0)
+  updated_at      DateTime?     @db.Timestamp(0)
+  deals           deals?        @relation(fields: [deal_uid], references: [uid], onDelete: NoAction, onUpdate: NoAction, map: "deal_shares_deal_uid_foreign")
+  distributors    distributors? @relation(fields: [distributor_uid], references: [uid], onDelete: NoAction, onUpdate: NoAction, map: "deal_shares_distributor_uid_foreign")
+
+  @@index([deal_uid], map: "deal_shares_deal_uid_foreign")
+  @@index([distributor_uid], map: "deal_shares_distributor_uid_foreign")
+}
+
+model deals {
+  uid            Int           @id @db.UnsignedInt
+  name           String        @db.VarChar(255)
+  platform_share Int
+  created_at     DateTime?     @db.Timestamp(0)
+  updated_at     DateTime?     @db.Timestamp(0)
+  begin_at       DateTime      @db.DateTime(0)
+  end_at         DateTime      @db.DateTime(0)
+  deal_shares    deal_shares[]
+  premiums       premiums[]
+}
+
+model distributors {
+  uid            Int           @id @db.UnsignedInt
+  username       String        @db.VarChar(255)
+  password       String        @db.VarChar(255)
+  remember_token String?       @db.VarChar(100)
+  deal_shares    deal_shares[]
+}
+
+model entries {
+  id            Int        @id @default(autoincrement()) @db.UnsignedInt
+  status        String     @db.VarChar(255)
+  user_uid      Int        @db.UnsignedInt
+  franchise_uid Int        @db.UnsignedInt
+  checkpoint    Json
+  created_at    DateTime?  @db.Timestamp(0)
+  updated_at    DateTime?  @db.Timestamp(0)
+  franchises    franchises @relation(fields: [franchise_uid], references: [uid], onDelete: Cascade, onUpdate: NoAction, map: "entries_franchise_uid_foreign")
+  users         users      @relation(fields: [user_uid], references: [uid], onDelete: Cascade, onUpdate: NoAction, map: "entries_user_uid_foreign")
+
+  @@index([franchise_uid], map: "entries_franchise_uid_foreign")
+  @@index([user_uid], map: "entries_user_uid_foreign")
+}
+
+model episodes {
+  uid           Int             @id @db.UnsignedInt
+  title_uid     Int             @db.UnsignedInt
+  number        Int
+  name          String?         @db.VarChar(255)
+  status        String          @db.VarChar(255)
+  policy        String          @db.VarChar(255)
+  streams       Json?
+  schedule      DateTime?       @db.DateTime(0)
+  images        Json
+  timestamps    Json?
+  created_at    DateTime        @db.DateTime(0)
+  contributions contributions[]
+  titles        titles          @relation(fields: [title_uid], references: [uid], onDelete: NoAction, onUpdate: NoAction, map: "episodes_title_uid_foreign")
+  medias        medias[]
+  views         views[]
+
+  @@index([title_uid], map: "episodes_title_uid_foreign")
+}
+
+model fcm_tokens {
+  id        BigInt @id @default(autoincrement()) @db.UnsignedBigInt
+  user_uid  Int    @db.UnsignedInt
+  device_id String @db.VarChar(255)
+  token     String @db.VarChar(255)
+  users     users  @relation(fields: [user_uid], references: [uid], onDelete: NoAction, onUpdate: NoAction, map: "fcm_tokens_user_uid_foreign")
+
+  @@index([user_uid], map: "fcm_tokens_user_uid_foreign")
+}
+
+model franchise_genres {
+  id            Int        @id @default(autoincrement()) @db.UnsignedInt
+  franchise_uid Int        @db.UnsignedInt
+  genre_id      Int        @db.UnsignedInt
+  franchises    franchises @relation(fields: [franchise_uid], references: [uid], onDelete: Cascade, onUpdate: NoAction, map: "franchise_genres_franchise_uid_foreign")
+  genres        genres     @relation(fields: [genre_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "franchise_genres_genre_id_foreign")
+
+  @@index([franchise_uid], map: "franchise_genres_franchise_uid_foreign")
+  @@index([genre_id], map: "franchise_genres_genre_id_foreign")
+}
+
+model franchises {
+  uid              Int                @id @db.UnsignedInt
+  name             String             @db.VarChar(255)
+  type             String             @db.VarChar(255)
+  age_rating       Int
+  images           Json
+  created_at       DateTime           @db.DateTime(0)
+  deleted_at       DateTime?          @db.Timestamp(0)
+  name_mn          String             @db.VarChar(255)
+  name_ts          String             @db.VarChar(255)
+  keywords         Json
+  entries          entries[]
+  franchise_genres franchise_genres[]
+  highlight_items  highlight_items[]
+  restrictions     restrictions[]
+  titles           titles[]
+}
+
+model genres {
+  id               Int                @id @default(autoincrement()) @db.UnsignedInt
+  name             String             @db.VarChar(255)
+  keyword          String             @db.VarChar(255)
+  franchise_genres franchise_genres[]
+}
+
+model gifts {
+  id             Int          @id @default(autoincrement()) @db.UnsignedInt
+  issue_user_uid Int?         @db.UnsignedInt
+  pro_pack_id    Int          @db.UnsignedInt
+  code           String?      @db.VarChar(255)
+  message        String?      @db.VarChar(255)
+  membership_id  Int?         @db.UnsignedInt
+  created_at     DateTime     @db.DateTime(0)
+  paid_at        DateTime?    @db.DateTime(0)
+  activated_at   DateTime?    @db.DateTime(0)
+  users          users?       @relation(fields: [issue_user_uid], references: [uid], onDelete: NoAction, onUpdate: NoAction, map: "gifts_issue_user_uid_foreign")
+  memberships    memberships? @relation(fields: [membership_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "gifts_membership_id_foreign")
+  pro_packs      pro_packs    @relation(fields: [pro_pack_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "gifts_pro_pack_id_foreign")
+
+  @@index([issue_user_uid], map: "gifts_issue_user_uid_foreign")
+  @@index([membership_id], map: "gifts_membership_id_foreign")
+  @@index([pro_pack_id], map: "gifts_pro_pack_id_foreign")
+}
+
+model highlight_items {
+  id            Int        @id @default(autoincrement()) @db.UnsignedInt
+  highlight_id  Int        @db.UnsignedInt
+  franchise_uid Int        @db.UnsignedInt
+  title_uid     Int        @db.UnsignedInt
+  index         Int
+  has_episode   Boolean    @default(false)
+  franchises    franchises @relation(fields: [franchise_uid], references: [uid], onDelete: Cascade, onUpdate: NoAction, map: "highlight_items_franchise_uid_foreign")
+  highlights    highlights @relation(fields: [highlight_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "highlight_items_highlight_id_foreign")
+  titles        titles     @relation(fields: [title_uid], references: [uid], onDelete: Cascade, onUpdate: NoAction, map: "highlight_items_title_uid_foreign")
+
+  @@index([franchise_uid], map: "highlight_items_franchise_uid_foreign")
+  @@index([highlight_id], map: "highlight_items_highlight_id_foreign")
+  @@index([title_uid], map: "highlight_items_title_uid_foreign")
+}
+
+model highlights {
+  id              Int               @id @default(autoincrement()) @db.UnsignedInt
+  name            String            @db.VarChar(255)
+  index           Int
+  highlight_items highlight_items[]
+}
+
+model invoices {
+  uid                Int              @id @db.UnsignedInt
+  item_type          String           @db.VarChar(255)
+  item_id            Int              @db.UnsignedInt
+  payment_invoice_id String           @db.VarChar(255)
+  user_uid           Int              @db.UnsignedInt
+  payment_gateway_id Int              @db.UnsignedInt
+  created_at         DateTime         @db.Timestamp(0)
+  expire_at          DateTime?        @db.Timestamp(0)
+  paid_at            DateTime?        @db.Timestamp(0)
+  payment_gateways   payment_gateways @relation(fields: [payment_gateway_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "invoices_payment_gateway_id_foreign")
+  users              users            @relation(fields: [user_uid], references: [uid], onDelete: NoAction, onUpdate: NoAction, map: "invoices_user_uid_foreign")
+
+  @@index([payment_gateway_id], map: "invoices_payment_gateway_id_foreign")
+  @@index([user_uid], map: "invoices_user_uid_foreign")
+}
+
+model medias {
+  id          Int      @id @default(autoincrement()) @db.UnsignedInt
+  episode_uid Int      @db.UnsignedInt
+  type        String   @db.VarChar(255)
+  metadata    Json
+  status      String   @db.VarChar(255)
+  episodes    episodes @relation(fields: [episode_uid], references: [uid], onDelete: NoAction, onUpdate: NoAction, map: "medias_episode_uid_foreign")
+
+  @@index([episode_uid], map: "medias_episode_uid_foreign")
+}
+
+model members {
+  id            Int             @id @default(autoincrement()) @db.UnsignedInt
+  name          String          @db.VarChar(255)
+  status        String          @db.VarChar(255)
+  contributions contributions[]
+}
+
+model memberships {
+  id           Int            @id @default(autoincrement()) @db.UnsignedInt
+  user_uid     Int            @db.UnsignedInt
+  end_at       DateTime       @db.DateTime(0)
+  pro_pack_id  Int?           @db.UnsignedInt
+  begin_at     DateTime       @db.DateTime(0)
+  gifts        gifts[]
+  pro_packs    pro_packs?     @relation(fields: [pro_pack_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "memberships_pro_pack_id_foreign")
+  users        users          @relation(fields: [user_uid], references: [uid], onDelete: NoAction, onUpdate: NoAction, map: "memberships_user_uid_foreign")
+  transactions transactions[]
+
+  @@index([pro_pack_id], map: "memberships_pro_pack_id_foreign")
+  @@index([user_uid], map: "memberships_user_uid_foreign")
+}
+
+model migrations {
+  id        Int    @id @default(autoincrement()) @db.UnsignedInt
+  migration String @db.VarChar(255)
+  batch     Int
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model password_resets {
+  email      String    @db.VarChar(255)
+  token      String    @db.VarChar(255)
+  created_at DateTime? @db.Timestamp(0)
+
+  @@index([email], map: "password_resets_email_index")
+  @@ignore
+}
+
+model payment_gateways {
+  id           Int            @id @default(autoincrement()) @db.UnsignedInt
+  name         String         @db.VarChar(255)
+  label        String         @db.VarChar(255)
+  item_type    String         @db.VarChar(255)
+  method       String         @db.VarChar(255)
+  is_smurf     Boolean
+  metadata     Json
+  deleted_at   DateTime?      @db.Timestamp(0)
+  cards        cards[]
+  invoices     invoices[]
+  transactions transactions[]
+}
+
+model premium_accesses {
+  id          Int       @id @default(autoincrement()) @db.UnsignedInt
+  premium_uid Int       @db.UnsignedInt
+  user_uid    Int       @db.UnsignedInt
+  begin_at    DateTime  @db.DateTime(0)
+  end_at      DateTime? @db.DateTime(0)
+  premiums    premiums  @relation(fields: [premium_uid], references: [uid], onDelete: NoAction, onUpdate: NoAction, map: "premium_accesses_premium_uid_foreign")
+  users       users     @relation(fields: [user_uid], references: [uid], onDelete: NoAction, onUpdate: NoAction, map: "premium_accesses_user_uid_foreign")
+
+  @@index([premium_uid], map: "premium_accesses_premium_uid_foreign")
+  @@index([user_uid], map: "premium_accesses_user_uid_foreign")
+}
+
+model premium_titles {
+  id          Int      @id @default(autoincrement()) @db.UnsignedInt
+  premium_uid Int      @db.UnsignedInt
+  title_uid   Int      @db.UnsignedInt
+  premiums    premiums @relation(fields: [premium_uid], references: [uid], onDelete: NoAction, onUpdate: NoAction, map: "premium_titles_premium_uid_foreign")
+  titles      titles   @relation(fields: [title_uid], references: [uid], onDelete: NoAction, onUpdate: NoAction, map: "premium_titles_title_uid_foreign")
+
+  @@index([premium_uid], map: "premium_titles_premium_uid_foreign")
+  @@index([title_uid], map: "premium_titles_title_uid_foreign")
+}
+
+model premiums {
+  uid              Int                @id @db.UnsignedInt
+  name             String             @db.VarChar(255)
+  price            Int
+  period_hours     Int?
+  created_at       DateTime           @db.DateTime(0)
+  deal_uid         Int?               @db.UnsignedInt
+  premium_accesses premium_accesses[]
+  premium_titles   premium_titles[]
+  deals            deals?             @relation(fields: [deal_uid], references: [uid], onDelete: NoAction, onUpdate: NoAction, map: "premiums_deal_uid_foreign")
+
+  @@index([deal_uid], map: "premiums_deal_uid_foreign")
+}
+
+model pro_packs {
+  id          Int           @id @default(autoincrement()) @db.UnsignedInt
+  duration    Int
+  price       Int
+  label       String        @db.VarChar(255)
+  level       Int
+  deleted_at  DateTime?     @db.Timestamp(0)
+  gifts       gifts[]
+  memberships memberships[]
+}
+
+model push_notifications {
+  id         Int      @id @default(autoincrement()) @db.UnsignedInt
+  title_uid  Int      @db.UnsignedInt
+  user_uid   Int      @db.UnsignedInt
+  meta       Json
+  data       Json
+  created_at DateTime @default(now()) @db.Timestamp(0)
+  titles     titles   @relation(fields: [title_uid], references: [uid], onDelete: Cascade, onUpdate: NoAction, map: "push_notifications_title_uid_foreign")
+  users      users    @relation(fields: [user_uid], references: [uid], onDelete: Cascade, onUpdate: NoAction, map: "push_notifications_user_uid_foreign")
+
+  @@index([title_uid], map: "push_notifications_title_uid_foreign")
+  @@index([user_uid], map: "push_notifications_user_uid_foreign")
+}
+
+model restrictions {
+  id            Int         @id @default(autoincrement()) @db.UnsignedInt
+  franchise_uid Int?        @db.UnsignedInt
+  type          String      @db.VarChar(255)
+  franchises    franchises? @relation(fields: [franchise_uid], references: [uid], onDelete: NoAction, onUpdate: NoAction, map: "restrictions_franchise_uid_foreign")
+
+  @@index([franchise_uid], map: "restrictions_franchise_uid_foreign")
+}
+
+model titles {
+  uid                Int                  @id @db.UnsignedInt
+  franchise_uid      Int                  @db.UnsignedInt
+  index              Int
+  label              String               @db.VarChar(255)
+  name               String               @db.VarChar(255)
+  name_mn            String               @db.VarChar(255)
+  total_ep           Int?
+  status             String               @default("ongoing") @db.VarChar(255)
+  plot               String?              @db.LongText
+  images             Json
+  created_at         DateTime             @db.DateTime(0)
+  episodes           episodes[]
+  highlight_items    highlight_items[]
+  premium_titles     premium_titles[]
+  push_notifications push_notifications[]
+  franchises         franchises           @relation(fields: [franchise_uid], references: [uid], onDelete: NoAction, onUpdate: NoAction, map: "titles_franchise_uid_foreign")
+
+  @@index([franchise_uid], map: "titles_franchise_uid_foreign")
+}
+
+model transactions {
+  id                  Int               @id @default(autoincrement()) @db.UnsignedInt
+  amount              Decimal           @db.Decimal(10, 2)
+  created_at          DateTime          @db.DateTime(0)
+  membership_id       Int?              @db.UnsignedInt
+  description         String?           @db.VarChar(255)
+  bank_account_number String?           @db.VarChar(255)
+  refund_fee          Int?
+  payment_gateway_id  Int?              @db.UnsignedInt
+  memberships         memberships?      @relation(fields: [membership_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "transactions_membership_id_foreign")
+  payment_gateways    payment_gateways? @relation(fields: [payment_gateway_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "transactions_payment_gateway_id_foreign")
+
+  @@index([membership_id], map: "transactions_membership_id_foreign")
+  @@index([payment_gateway_id], map: "transactions_payment_gateway_id_foreign")
+}
+
+model users {
+  uid                Int                  @id @db.UnsignedInt
+  email              String?              @db.VarChar(255)
+  password           String?              @db.VarChar(255)
+  role               Int
+  remember_token     String?              @db.VarChar(100)
+  created_at         DateTime?            @db.Timestamp(0)
+  updated_at         DateTime?            @db.Timestamp(0)
+  auth_providers     auth_providers[]
+  cards              cards[]
+  entries            entries[]
+  fcm_tokens         fcm_tokens[]
+  gifts              gifts[]
+  invoices           invoices[]
+  memberships        memberships[]
+  premium_accesses   premium_accesses[]
+  push_notifications push_notifications[]
+  views              views[]
+}
+
+model views {
+  id          Int       @id @default(autoincrement()) @db.UnsignedInt
+  episode_uid Int       @db.UnsignedInt
+  user_uid    Int?      @db.UnsignedInt
+  created_at  DateTime? @db.DateTime(0)
+  episodes    episodes  @relation(fields: [episode_uid], references: [uid], onDelete: NoAction, onUpdate: NoAction, map: "views_episode_uid_foreign")
+  users       users?    @relation(fields: [user_uid], references: [uid], onDelete: NoAction, onUpdate: NoAction, map: "views_user_uid_foreign")
+
+  @@index([episode_uid], map: "views_episode_uid_foreign")
+  @@index([user_uid], map: "views_user_uid_foreign")
 }
