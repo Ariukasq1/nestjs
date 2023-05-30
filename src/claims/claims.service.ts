@@ -11,53 +11,89 @@ export class ClaimsService {
       where: { code: body.code },
     });
 
-    const currentDate = new Date().toJSON();
+    const currentDate = new Date().getTime();
 
     if (!redeemable) {
       return new HttpException('Forbidden', HttpStatus.FORBIDDEN);
-    } else if (redeemable.isReclaimable != true) {
-      return new HttpException(
-        'isReclaimable value is false',
-        HttpStatus.FORBIDDEN,
-      );
-    } else if (
-      JSON.stringify(redeemable.claimBeginAt) < JSON.stringify(currentDate) &&
-      JSON.stringify(currentDate) < JSON.stringify(redeemable.claimEndAt) &&
-      redeemable.isReclaimable === true
+    }
+    if (
+      (redeemable.claimBeginAt === null || redeemable.claimEndAt === null) &&
+      redeemable.claimBeginAt.getTime() < currentDate &&
+      currentDate < redeemable.claimEndAt.getTime()
     ) {
-      const claim = await this.prisma.redeemableClaim.create({
-        data: body,
-      });
-
-      const eventHandler = await this.prisma.eventHandler.findFirst({
-        where: {
-          triggerType: redeemable.type,
-          triggerId: redeemable.id,
-        },
-      });
-
-      if (eventHandler) {
-        return this.prisma.eventResult.createMany({
-          data: [
-            {
-              resultType: '',
-              resultId: 0,
-              eventHandlerId: 0,
-            },
-          ],
+      return new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+    } else {
+      if (redeemable.isReclaimable != true) {
+        const totalClaim = await this.prisma.redeemableClaim.count({
+          where: { redeemableId: redeemable.id },
         });
-      }
 
-      let currentClaimCount = claim.claimCount;
-      const newClaimCount = currentClaimCount++;
-      return this.prisma.redeemableClaim.update({
-        where: {
-          id: claim.id,
-        },
-        data: {
-          claimCount: newClaimCount,
-        },
-      });
+        if (totalClaim >= 1) {
+          return new HttpException(
+            "Claim's  count more than 1",
+            HttpStatus.FORBIDDEN,
+          );
+        }
+        await this.prisma.redeemableClaim.create({
+          data: {
+            redeemableId: redeemable.id,
+          },
+        });
+
+        const eventHandler = await this.prisma.eventHandler.findFirst({
+          where: {
+            triggerType: redeemable.type,
+            triggerId: redeemable.id,
+          },
+        });
+
+        if (!eventHandler) {
+          return new HttpException(
+            'Did not eventHandlerId ',
+            HttpStatus.FORBIDDEN,
+          );
+        } else {
+          return this.prisma.eventResult.createMany({
+            data: [
+              {
+                resultType: '',
+                resultId: 0,
+                eventHandlerId: eventHandler.id,
+              },
+            ],
+          });
+        }
+      } else {
+        await this.prisma.redeemableClaim.create({
+          data: {
+            redeemableId: redeemable.id,
+          },
+        });
+
+        const eventHandler = await this.prisma.eventHandler.findFirst({
+          where: {
+            triggerType: redeemable.type,
+            triggerId: redeemable.id,
+          },
+        });
+
+        if (!eventHandler) {
+          return new HttpException(
+            'Did not eventHandlerId ',
+            HttpStatus.FORBIDDEN,
+          );
+        } else {
+          return this.prisma.eventResult.createMany({
+            data: [
+              {
+                resultType: '',
+                resultId: 0,
+                eventHandlerId: eventHandler.id,
+              },
+            ],
+          });
+        }
+      }
     }
   }
 

@@ -8,36 +8,40 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Redeemable {
-  id                Int      @id @default(autoincrement())
+model redeemable {
+  id                Int               @id @default(autoincrement())
   code              String
   type              String
-  claimBeginAt      DateTime
-  claimEndAt        DateTime
-  createdAt         DateTime @default(now())
-  redeemableGroupId Int?
-  isReclaimable     Boolean  @default(false)
+  claimBeginAt      DateTime?
+  claimEndAt        DateTime?
+  createdAt         DateTime          @default(now())
+  redeemableGroup   redeemableGroup   @relation(fields: [redeemableGroupId], references: [id])
+  redeemableGroupId Int
+  isReclaimable     Boolean           @default(false)
   name              String
+  redeemableClaim   redeemableClaim[]
 }
 
-model RedeemableGroup {
-  id   Int    @id @default(autoincrement())
-  name String
+model redeemableGroup {
+  id         Int          @id @default(autoincrement())
+  name       String
+  redeemable redeemable[]
 }
 
-model RedeemableClaim {
-  id         Int    @id @default(autoincrement())
-  code       String
-  claimCount Int?
+model redeemableClaim {
+  id           Int        @id @default(autoincrement())
+  redeemable   redeemable @relation(fields: [redeemableId], references: [id])
+  redeemableId Int
+  userId       Int?
 }
 
-model EventHandler {
+model eventHandler {
   id          Int    @id @default(autoincrement())
   triggerType String
   triggerId   Int
 }
 
-model EventResult {
+model eventResult {
   id             Int    @id @default(autoincrement())
   resultType     String
   resultId       Int

@@ -24,15 +24,15 @@ export class RedeemablesService {
     return this.prisma.redeemable.findMany();
   }
 
-  findOne(redeemadbleWhereUniqueInput: Prisma.RedeemableWhereUniqueInput) {
+  findOne(redeemadbleWhereUniqueInput: Prisma.redeemableWhereUniqueInput) {
     return this.prisma.redeemable.findUnique({
       where: redeemadbleWhereUniqueInput,
     });
   }
 
   update(
-    where: Prisma.RedeemableWhereUniqueInput,
-    data: Prisma.RedeemableWhereUniqueInput,
+    where: Prisma.redeemableWhereUniqueInput,
+    data: Prisma.redeemableWhereUniqueInput,
   ) {
     return this.prisma.redeemable.update({
       data,
@@ -40,7 +40,7 @@ export class RedeemablesService {
     });
   }
 
-  remove(where: Prisma.RedeemableWhereUniqueInput) {
+  remove(where: Prisma.redeemableWhereUniqueInput) {
     return this.prisma.redeemable.delete({
       where,
     });
